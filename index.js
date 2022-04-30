@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qaeg0.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -26,18 +26,48 @@ async function run() {
     console.log("DB connected");
 
     // Get inventories
-    app.get("/inventory", async(req, res) => {
-        const size = parseInt(req.query.size);
-        console.log(size);
-        const query = {};
-        let inventories;
-        if (size) {
-            inventories = await inventoryCollection.find(query).limit(size).toArray();
-        } else{
-            inventories = await inventoryCollection.find(query).toArray();
-        }
-        res.send(inventories)
+    app.get("/inventory", async (req, res) => {
+      const homeInventory = parseInt(req.query.homeInventory);
+      const query = {};
+      let inventories;
+      if (homeInventory) {
+        inventories = await inventoryCollection
+          .find(query)
+          .limit(homeInventory)
+          .toArray();
+      } else {
+        inventories = await inventoryCollection.find(query).toArray();
+      }
+      res.send(inventories);
     });
+
+    // Get Single Inventory Details
+    app.get("/inventoryDetails", async (req, res) => {
+      const id = req.query.manageId;
+      const query = { _id: ObjectId(id) };
+      const result = await inventoryCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Update Inventory Quantity
+    app.put("/updateQuantity", async (req, res) => {
+      const id = req.query.manageId;
+      const quantity = parseInt(req.body.quantity);
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          quantity: quantity,
+        },
+      };
+      const result = await inventoryCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
 
   } finally {
     // client.close()
