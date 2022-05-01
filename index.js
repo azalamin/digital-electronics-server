@@ -1,5 +1,8 @@
 const cors = require("cors");
 const express = require("express");
+const jwt = require("jsonwebtoken");
+const verify = require("jsonwebtoken/verify");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 require("dotenv").config();
 
@@ -9,7 +12,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const JWTverify = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorized permission" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qaeg0.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -25,7 +42,16 @@ async function run() {
       .collection("inventories");
     console.log("DB connected");
 
-    // Get inventories
+    // AUTHENTICATION
+    app.post("/login", async (req, res) => {
+      const user = req.body;
+      const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN, {
+        expiresIn: "1d",
+      });
+      res.send({ accessToken });
+    });
+
+    // Inventory API
     app.get("/inventory", async (req, res) => {
       const homeInventory = parseInt(req.query.homeInventory);
       const query = {};
@@ -42,18 +68,24 @@ async function run() {
     });
 
     // Get User Inventories
-    app.get('/inventories', async(req, res) => {
-        const email = req.query.email;
-        const query = {email: email};
+    app.get("/inventories", JWTverify, async (req, res) => {
+      const decodedEmail = req?.decoded?.email;
+      const email = req?.query?.email;
+      console.log(req.decoded);
+      if (email === decodedEmail) {
+        const query = { email: email };
         const result = await inventoryCollection.find(query).toArray();
-        res.send(result)
-    })
+        res.send(result);
+      } else {
+        res.status(403).send({ message: "Forbidden access" });
+      }
+    });
 
     // Post Inventory
     app.post("/inventory", async (req, res) => {
-        const data = req.body;
-        const result = await inventoryCollection.insertOne(data);
-        res.send(result)
+      const data = req.body;
+      const result = await inventoryCollection.insertOne(data);
+      res.send(result);
     });
 
     // Get Single Inventory Details
@@ -98,8 +130,6 @@ async function run() {
       const result = await inventoryCollection.deleteOne(query);
       res.send(result);
     });
-
-
   } finally {
     // client.close()
   }
