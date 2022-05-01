@@ -41,6 +41,14 @@ async function run() {
       res.send(inventories);
     });
 
+    // Get User Inventories
+    app.get('/inventories', async(req, res) => {
+        const email = req.query.email;
+        const query = {email: email};
+        const result = await inventoryCollection.find(query).toArray();
+        res.send(result)
+    })
+
     // Post Inventory
     app.post("/inventory", async (req, res) => {
         const data = req.body;
@@ -78,6 +86,14 @@ async function run() {
     // handle delete
     app.delete("/inventory", async (req, res) => {
       const id = req.query.inventoryId;
+      const query = { _id: ObjectId(id) };
+      const result = await inventoryCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // Handle MY Item delete
+    app.delete("/myInventory", async (req, res) => {
+      const id = req.query.id;
       const query = { _id: ObjectId(id) };
       const result = await inventoryCollection.deleteOne(query);
       res.send(result);
