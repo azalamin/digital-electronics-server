@@ -42,7 +42,6 @@ async function run() {
     const inventoryCollection = client
       .db("digitalElectronics")
       .collection("inventories");
-    console.log("DB connected");
 
     // AUTHENTICATION
     app.post("/login", async (req, res) => {
@@ -73,7 +72,6 @@ async function run() {
     app.get("/inventories", JWTverify, async (req, res) => {
       const decodedEmail = req?.decoded?.email;
       const email = req?.query?.email;
-      console.log(req.decoded);
       if (email === decodedEmail) {
         const query = { email: email };
         const result = await inventoryCollection.find(query).toArray();
