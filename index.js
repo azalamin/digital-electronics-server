@@ -41,6 +41,13 @@ async function run() {
       res.send(inventories);
     });
 
+    // Post Inventory
+    app.post("/inventory", async (req, res) => {
+        const data = req.body;
+        const result = await inventoryCollection.insertOne(data);
+        res.send(result)
+    });
+
     // Get Single Inventory Details
     app.get("/inventoryDetails", async (req, res) => {
       const id = req.query.manageId;
