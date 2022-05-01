@@ -12,6 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Verify Auth
 const JWTverify = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -34,6 +35,7 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+// Get All API
 async function run() {
   try {
     await client.connect();
