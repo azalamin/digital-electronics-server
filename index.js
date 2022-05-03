@@ -54,18 +54,29 @@ async function run() {
 
     // Inventory API
     app.get("/inventory", async (req, res) => {
-      const homeInventory = parseInt(req.query.homeInventory);
+      const homeInventory = parseInt(req?.query?.homeInventory);
+      const page = parseInt(req?.query?.page);
+      const size = parseInt(req?.query?.size);
       const query = {};
+      const cursor = inventoryCollection.find(query);
       let inventories;
-      if (homeInventory) {
-        inventories = await inventoryCollection
-          .find(query)
-          .limit(homeInventory)
+      if (page || size) {
+        inventories = await cursor
+          .skip(page * size)
+          .limit(size)
           .toArray();
+      } else if (homeInventory) {
+        inventories = await cursor.limit(homeInventory).toArray();
       } else {
-        inventories = await inventoryCollection.find(query).toArray();
+        inventories = await cursor.toArray();
       }
       res.send(inventories);
+    });
+
+    // Inventories Count
+    app.get("/inventoryCount", async (req, res) => {
+      const totalInventory = await inventoryCollection.estimatedDocumentCount();
+      res.send({ totalInventory });
     });
 
     // Get User Inventories
